@@ -12,7 +12,7 @@ import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useDispatch, useSelector } from "react-redux";
-import {logout} from '../slices/authSlice'
+import { logout } from '../slices/authSlice'
 import { useLogoutMutation } from '../slices/usersApiSlice'
 
 
@@ -21,9 +21,10 @@ export default function Navbar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
-  const[logoutApiCall] = useLogoutMutation()
+  const [logoutApiCall] = useLogoutMutation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
+
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
@@ -38,15 +39,15 @@ export default function Navbar() {
     setAnchorElUser(null);
   };
 
-  const handleLogout =  async() => {
+  const handleLogout = async () => {
     handleCloseNavMenu()
-     try{
+    try {
       await logoutApiCall().unwrap();
       dispatch(logout())
       navigate('/')
-     }catch(error){
-       console.log(error)
-     }
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   return (
@@ -145,11 +146,15 @@ export default function Navbar() {
             >
               <Tooltip title="Open settings">
                 <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                  <Button color="secondary" variant="contained">{userInfo.name}</Button>
+                  {
+                    userInfo?.name && (
+                      <Button color="secondary" variant="contained">{userInfo?.name}</Button>
+                    )
+                  }
                 </IconButton>
               </Tooltip>
               <Menu
-                sx={{ mt: "38px",padding:'20px' }}
+                sx={{ mt: "38px", padding: '20px' }}
                 id="menu-appbar"
                 anchorEl={anchorElUser}
                 anchorOrigin={{
@@ -164,12 +169,12 @@ export default function Navbar() {
                 open={Boolean(anchorElUser)}
                 onClose={handleCloseUserMenu}
               >
-                  <MenuItem onClick={handleCloseUserMenu}>
-                    <Typography textAlign="center">Profile</Typography>
-                  </MenuItem>
-                  <MenuItem onClick={handleCloseUserMenu}>
-                    <Typography textAlign="center">Logout</Typography>
-                  </MenuItem>
+                <MenuItem onClick={handleCloseUserMenu}>
+                  <Typography textAlign="center">Profile</Typography>
+                </MenuItem>
+                <MenuItem onClick={handleLogout}>
+                  <Typography textAlign="center">Logout</Typography>
+                </MenuItem>
               </Menu>
             </Box>
           </Toolbar>

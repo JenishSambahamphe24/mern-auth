@@ -436,4 +436,38 @@ In summary, the code sets up user-specific API endpoints using Redux Toolkit's q
 ////////  Login Functionality  ///////////////
 => import useDispatch, useSelector  , useLogin mutation from apiSlice , setCredentials from authSlice .
   to understand the concept of useLoginMutation please go to code component LoginScreen
-2:36
+
+/////////Register Functionality /////////////////
+
+
+/////////Private Route for updating profile ////////////
+if we set up route for updating profile in this way 
+ <Route path="/" element={<App />}>
+      <Route index={true} path="/" element={<HomeScreen />} />
+      <Route index={true} path="/login" element={<LoginScreen />} />
+      <Route index={true} path="/profile" element={<ProfileScreen/>}/>
+      <Route index={true} path="/register" element={<RegisterScreen />} />
+    </Route>
+    the http://localhost:3000/profile route is accessible by anyone . we dont want that  we only want authenticated user to update his/her profile so we set up private route
+
+    import React from 'react'
+    import { Navigate, Outlet } from "react-router-dom";
+    import { useSelector } from "react-redux";
+
+
+    const PrivateRoutes = () => {
+    const {userInfo} = useSelector((state) => state.auth)
+    return userInfo ? <Outlet/> : <Navigate to='/login' replace/> 
+}
+export default PrivateRoutes
+
+return userInfo ? <Outlet/> : <Navigate to='/login' replace/>: Conditionally renders either the <Outlet/> component or the <Navigate/> component based on the userInfo property.
+If userInfo is truthy (indicating that the user is authenticated), the <Outlet/> component is rendered. The <Outlet/> component is a placeholder that renders the child routes of the current route.
+If userInfo is falsy (indicating that the user is not authenticated), the <Navigate/> component is rendered with a to prop set to '/login'. This causes a redirection to the login page. The replace prop ensures that the current entry in the navigation history is replaced with the new location.
+
+in main.jsx import and wrap your private route like this 
+<Route path="" element={<PrivateRoutes />}>
+        <Route path="/profile" element={<ProfileScreen />} />
+      </Route>
+
+      now if we tried to access /profile from browser it will navigate to path="/login"

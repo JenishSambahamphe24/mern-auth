@@ -10,14 +10,14 @@ import {
   Container,
   Typography,
 } from "@mui/material";
-import {logout} from '../slices/authSlice'
+import { logout } from '../slices/authSlice'
 import { useNavigate, Link } from "react-router-dom";
 import PasswordInput from "../components/PasswordInput";
 // redux toolkit functionalities
 import { useDispatch, useSelector } from "react-redux";
 import { useLoginMutation } from "../slices/usersApiSlice";
 import { setCredentials } from "../slices/authSlice";
-import {toast} from 'react-toastify'
+import { toast } from 'react-toastify'
 
 function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -43,15 +43,20 @@ function LoginScreen() {
 
   const submitHandler = async (e) => {
     e.preventDefault();
-    console.log(email+password)
     try {
-        const res = await login({ email, password }).unwrap();
-        dispatch(setCredentials({ ...res }));
+      const res = await login({ email, password }).unwrap();
+      dispatch(setCredentials({ ...res }));
+      toast.success('login successful')
+
+      setTimeout(() => {
         navigate('/')
+        console.log('navigating after timeout')
+      }, 2000);
+
     } catch (err) {
-        toast.error(err?.data?.message || err.error);
+      toast.error(err?.data?.message || err.error);
     }
-};
+  };
   return (
     <Paper
       elevation={3}
@@ -75,6 +80,7 @@ function LoginScreen() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+
             <Button
               type="submit"
               variant="outlined"

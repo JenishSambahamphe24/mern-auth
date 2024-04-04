@@ -1,0 +1,12 @@
+
+//////
+=> install dependencies
+=> configure scripts
+=> create a server file which should act as main entry file for backend
+=> configure env files 
+=> setup routes by creating route files inside Routes folder
+   #also create a controller file inside controller folder and create respective controller functions in that file
+   In the project mern-auth functions which are related and required in userRoutes files are created in userController like authuser, registerUser, updateUserProfile, getUserProfile etc. These controller functions are configured in userRoutes afters.
+
+///////////////////////////////RTK Querry
+understand the concept of builder and mutation

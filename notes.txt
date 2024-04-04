@@ -1,0 +1,488 @@
+
+///////////////////////////////////////Dependencies and express
+
+#install mongoose bcryptjs jsonwebtoken express dotenv cookie-parser
+#In Node.js, modules can be written using two different module systems: CommonJS and ECMAScript modules. CommonJS is the traditional module system used in Node.js, while ECMAScript modules (ESM) are the standard module system in JavaScript as defined by ECMAScript.
+
+    // Importing a module
+     import fs from 'fs';
+
+    // Exporting a module
+    export function myFunction() {
+     // Some code here
+    }
+In the above example If you were using CommonJS, you would use require for importing and module.exports for exporting. To use ECMAScript just add type: "module" property in your package.json file
+
+#In the package.json file  "scripts" object is a section where you can define various scripts or commands that can be executed using npm. These scripts are typically used for tasks such as testing, building, or running your application
+
+ "scripts": {
+    "start": "node backend/server.js", //This script is designed to start your application using the Node.js runtime. It runs the server.js file located in the backend directory.
+    "server":"nodemon backend/server.js" // This script uses nodemon, a utility that monitors for changes in your source code and automatically restarts the server when changes are detected
+  },
+
+#install nodemon as devDependency 
+npm i -D nodemon 
+
+#create a .env file and configure it in server.js file
+#create a gitignore file and put node module and .env file there
+
+///////////////////////////creating routes and Middleware 
+#inside backend directory create a new directory called Routes and inside that create userRoutes.js file
+#inside backend directory create a new folder called Controller and inside that create a Controller.js file
+
+#inside backend directoey create a folder named middleware and create a errorMiddleware file
+
+// setting up mongoDB Databases
+=> Open mongoDB atlas create a new project
+=> build a database, rename cluster(optional), choose free feature 
+=> create a database user (remeber the username and password as it is required in future) , add current ip address, finish close and go to Databases
+=> click on "add my own data" , create database name , collection name (u dont have to give name every time u can do it through code)
+=> Now we have database with the given collections . so now we have to connect it to our database , in order to connect through mongoDB     compass we have to copy and paste connection  string (edit password there) and paste on mongodb compass.
+=> In order to connect to application we have to click on connect and this time select drivers, grab connection string, create a environment 
+   variable called "MONGO_URI" in .env file  and paste it there.
+   e.g
+   mongodb+srv://limbujenish24:<password>@mern-auth.p4cwc77.mongodb.net/mernauth?retryWrites=true&w=majority
+   note :: write your password and between mongodb.net/ and ? write correct project name like mernauth here. 
+
+// creating a config folder and create a file that establishes a connection to  the mongodb database 
+=> inside backend directory create a new folder called config and inside create a file called db.js
+
+// creating user model
+=> create a folder named models and create a usermodel.js file and inside that create a mongoose schema for a user and create a corresponding mongoose model for interacting with mongoose database.
+
+// INclude these middleware in Server.js file
+app.use(express.json())
+// express.json() is a built-in middleware function in Express.js that parses incoming JSON payloads (request bodies) and makes them available as req.body object. When a request with a JSON payload is received by the server, express.json() parses the JSON data and attaches it to the req.body property of the request object.
+
+app.use(express.urlencoded({extended: true}))
+// express.urlencoded({extended: true}) is another built-in middleware function in Express.js that parses incoming URL-encoded form data and makes it available as req.body object. URL-encoded form data is typically submitted through HTML forms with the application/x-www-form-urlencoded content type. The extended: true option allows the middleware to parse rich objects and arrays contained in the form data. If set to false, the value of req.body will be a string or array (depending on the type of form field).
+
+=====================================================> Authentication Flow
+
+=>Registration: When a user registers, their credentials (such as name, email, and password) are securely stored in the server's database.
+
+=>Login: When a user logs in with valid credentials, the server verifies the credentials against those stored in the database. If the credentials are valid, the server generates a JSON Web Token (JWT), which contains information about the user's identity and any relevant permissions. This JWT is then sent to the client (usually in a cookie or in the response body) for future authentication.
+
+=>Subsequent Requests: After successful login, the client sends the JWT with each subsequent request to the server, typically in an HTTP header. The server verifies the JWT to ensure the authenticity and validity of the request. This allows the server to authenticate the user for protected routes and endpoints.
+
+=>Logout: When a user logs out, the client (frontend) initiates a request to the server to invalidate the JWT. This is typically done by clearing the JWT cookie or by sending a special request to the server to delete the JWT from the client's local storage. Once the JWT is invalidated or removed, the user is considered logged out.
+
+=>By following this authentication flow, you establish a secure and robust mechanism for user authentication and authorization in your application. Additionally, implementing proper security measures such as hashing passwords, using HTTPS, and setting secure and HTTP-only cookies enhances the overall security of your authentication system.
+
+=====================================================> Generating jsonwebtoken and save cookie
+=> create a folder Utils and create a generateToken.js file
+
+//code
+import jwt from 'jsonwebtoken'
+const generateToken = (res, userId) =>{
+ const token = jwt.sign({userId}, process.env.JWT_SECRET,{
+    expiresIn: '30d'
+ })
+ res.cookie('jwt', token ,{
+    httpOnly:true,
+    secure:process.env.NODE_ENV !== 'development',
+    sameSite: 'strict',
+    maxAge: 30*24*60*60*1000
+ })
+}
+export default generateToken
+
+=>The generateToken function takes two parameters:
+res: This is the HTTP response object. It's used to set the JWT as a cookie in the response.
+ userId: This is the unique identifier of the user for whom the token is being generated. It's typically used to identify the user when the token is decoded and verified.
+
+=>Token Generation:
+Inside the function, the jwt.sign() method is used to generate a new JWT.
+The first parameter of jwt.sign() is an object containing the payload or claims that will be encoded into the token. In this case, { userId } is used as the payload, where userId is the unique identifier of the user.
+The second parameter is the secret key used to sign the token. It's important to keep this secret key secure and not expose it publicly.
+The third parameter is an options object that includes configuration settings for the token. In this case, the token is set to expire in 30 days (expiresIn: '30d').
+
+=>Setting the Token as a Cookie:
+ After generating the token, the function sets it as a cookie in the HTTP response using res.cookie().
+ The res.cookie() method takes three parameters:
+ The name of the cookie (jwt in this case).
+ The value of the cookie (the generated JWT).
+ An options object specifying additional attributes of the cookie, such as httpOnly, secure, sameSite, and maxAge.
+ httpOnly: Ensures that the cookie is only accessible via HTTP/S requests and cannot be accessed by client-side JavaScript, enhancing security.
+ secure: Indicates whether the cookie should only be sent over HTTPS. It's typically set to true in production environments and false in development environments.
+ sameSite: Specifies the SameSite attribute of the cookie to prevent cross-site request forgery (CSRF) attacks.
+ maxAge: Sets the maximum age of the cookie in milliseconds.
+
+////////////Process involved in authuser controller function
+=>Additionally, you've defined a pre-save middleware function (userSchema.pre('save', ...)), which ensures that passwords are securely hashed using bcrypt before being saved to the database. This function checks if the password field has been modified. If so, it generates a salt and hashes the password using bcrypt.
+
+=>Furthermore, you've defined a method (matchPasswords) on the user schema that compares a plain text password (entered by a user during login) with the hashed password stored in the database. This method utilizes bcrypt's compare function to securely compare the passwords.
+
+=>Now, let's dissect the authUser controller function:
+1) It's an asynchronous handler function (asyncHandler) that handles the authentication process when a user attempts to log in.
+
+2) It extracts the email and password from the request body (req.body), which presumably contains user input from a login form.
+
+3) It queries the database to find a user with the provided email using User.findOne({ email }).
+
+4) If a user with the provided email is found, it attempts to match the entered password with the hashed password stored in the database using the matchPasswords method defined on the user schema.
+
+5) If the passwords match, indicating successful authentication, it generates a JWT token for the user and sends back a JSON response with the user's details (such as _id, name, and email) along with the generated token. This token can be used by the client to authenticate subsequent requests.
+
+6) If no user is found with the provided email or if the passwords do not match, it returns a 401 status code (Unauthorized) and throws an error indicating invalid email or password.
+In summary, the authUser controller function handles user authentication by verifying the user's credentials against the stored credentials in the database. If authentication is successful, it generates a JWT token and sends it to the client, allowing the user to access protected resources in the application. Otherwise, it returns an error indicating invalid credentials.
+
+==================> Destroying cookie for the logout route
+//code
+const logoutUser = asyncHandler(async (req, res) => {
+  res.cookie(
+     'jwt', ' ', {
+      httpOnly: true,
+      expires:new Date(0)
+     }
+  )
+  res.status(200).json({message: 'user logged out'})
+});
+
+=> The logoutUser function is an asynchronous route handler that takes the request (req) and response (res) objects as parameters. It's responsible for logging out the user by invalidating the JWT token.
+
+=> Clearing the JWT Cookie:
+res.cookie('jwt', ' ', { httpOnly: true, expires: new Date(0) }): This line sets the JWT cookie named 'jwt' with an empty string value, effectively clearing the token. It sets the httpOnly flag to true, which means the cookie is accessible only via HTTP requests and cannot be accessed or modified by client-side JavaScript. The expires option sets the expiration date of the cookie to a past date (specifically, January 1, 1970), effectively removing it from the client's browser.
+
+=> Sending Response:
+ After clearing the cookie, the route handler sends a JSON response with a status code of 200 (res.status(200)) along with a message indicating that the user has been successfully logged out (res.json({ message: 'user logged out' })).
+
+ ======================================================================> Creating a authentication middleware to  ensures that only authenticated users with valid JWT tokens are granted access to protected routes in your application.
+ //code 
+import jwt from 'jsonwebtoken';
+import asyncHandler from 'express-async-handler';
+import User from '../models/userModel.js';
+const protect = asyncHandler(async (req, res, next) => {
+  let token;
+  token = req.cookies.jwt;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.userId).select('-password');
+      next();
+    } catch (error) {
+      console.error(error);
+      res.status(401);
+      throw new Error('Not authorized, token failed');
+    }
+  } else {
+    res.status(401);
+    throw new Error('Not authorized, no token');
+  }
+});
+export { protect };
+
+=>In your Express application, you need to use the cookie-parser middleware to parse cookies from the request headers. Make sure you have installed cookie-parser and added it to your middleware stack.
+
+=> This middleware function, named protect, is designed to protect routes in your application by ensuring that the user making a request is authenticated. Here's a breakdown of how it works:
+
+=> Async Handler: The asyncHandler middleware wraps the asynchronous operation within the protect function. It catches any errors that occur during the asynchronous operation and forwards them to Express's error handling middleware.
+
+=> Extracting the Token: The middleware function first attempts to extract the JWT token from the incoming request. It looks for the token in the jwt cookie attached to the request.
+
+=> Verifying the Token: If a token is found in the request, the middleware attempts to verify its authenticity using the jwt.verify method. This method checks whether the token is valid and has not been tampered with. It uses the secret key (process.env.JWT_SECRET) to verify the token's signature.
+
+=> Decoding the Token: If the token is valid, it is decoded to extract the user's ID (userId). This ID is used to query the database and retrieve the corresponding user information.
+
+=> Fetching User Information: The middleware queries the database to find the user with the decoded user ID (decoded.userId). It retrieves the user's information while excluding the password field for security reasons.
+
+=> Attaching User to Request Object: If the user is found and authenticated, the user object is attached to the request (req.user). This allows subsequent route handlers to access information about the authenticated user.
+
+=> Handling Errors: If any errors occur during the verification process or if no token is provided in the request, the middleware sends an HTTP 401 (Unauthorized) response with an appropriate error message. This indicates that the user is not authorized to access the protected resource.
+
+=> In summary, the protect middleware ensures that only authenticated users with valid JWT tokens are granted access to protected routes in your application. It serves as a gatekeeper for routes that require authentication, helping to enforce security and access control within your application.
+
+/////////////////// getUserProfile function of user controller
+
+//////////////////updateUserProfile of user controller
+//code in usercontroller.js file
+
+=> Async Handler: Similar to the previous controller function, this function is wrapped inside an async handler using the asyncHandler middleware. This helps to catch any asynchronous errors that may occur within the handler.
+
+=> User Profile Retrieval: It starts by fetching the user document from the database using the User.findById method. It uses the _id of the authenticated user stored in req.user._id to find the user.
+
+=> Conditional Check: It checks if the user document is found in the database. If the user is found (if (user)), it proceeds with updating the user's profile. If the user is not found, it sends a 404 status code and throws an error indicating that the user was not found.
+
+=> Profile Update: If the user is found, it updates the user's profile attributes based on the data sent in the request body (req.body). It updates the name and email fields with the new values provided in the request body. Additionally, if a new password is provided in the request body (req.body.password), it updates the password field with the new password.
+
+=> Saving Changes: After updating the user's profile attributes, it saves the changes to the user document in the database using the user.save() method.
+Response: Finally, it sends a JSON response containing the updated user profile data (_id, name, email) back to the client.
+
+In summary, this controller function handles the logic for updating the user's profile information. It fetches the user from the database, updates the profile attributes based on the request body, saves the changes, and sends back the updated user profile data as a JSON response.
+
+==============================================>  FRONTEND  <===================================================================================
+
+=>  Create a separate folder inside root directory mern-auth
+=>  use vite 
+   inside viteconfig.js 
+
+   import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server:{
+    port:3000,
+    proxy:{
+      '/api':{
+        target:'http://localhost:5000',
+        changeOrigin:true
+      }
+    }
+  }
+})
+
+ When you're developing a full-stack application where your frontend (React in this case) and backend (Node.js server) run on different ports during development, you often need to configure a proxy to handle requests between them.
+
+=> In your scenario:
+Your React development server is running on port 3000.
+Your Node.js backend server is running on port 5000.
+
+=> Since the frontend and backend are separate services, they have different origins by default. Browsers enforce the same-origin policy, which prevents frontend code from making requests to servers with different origins.
+
+=> To allow your frontend code to make requests to your backend during development without running into CORS issues, you set up a proxy. The proxy configuration tells your frontend development server (Vite in this case) to forward requests made to a specific path (e.g., /api) to your backend server running on another port (e.g., 5000).
+
+=> This setup allows you to develop your frontend and backend independently while still being able to make API requests from your frontend code to your backend server during development.
+
+=> By configuring a proxy, you're instructing your frontend development server to forward requests to your backend server when they match a specific path (e.g., /api). This way, the requests appear to originate from the same origin as your frontend, and the browser allows them to pass without encountering CORS issues.
+
+## 
+To run the frontend dev server from the root directory (mern-auth in your case) without having to navigate to the frontend directory, you can create a script in your package.json file that specifically runs the frontend server.
+
+Here's how you can do it:
+
+Open your package.json file located in the root directory (mern-auth).
+
+Add a script for running the frontend dev server. You can name it whatever you prefer,
+ "scripts": {
+    "start": "node backend/server.js",
+    "server": "nodemon backend/server.js",
+    "client":"npm run dev --prefix frontend"
+  },
+
+  and type npm run client to run frontend dev environment
+
+  ## to run both froentend and backend scripts use concurrently packages 
+  => in root directory i.e inside mern-auth 
+   npm i -D concurrently
+   
+  =>in root package json file add following script
+    "dev":"concurrently \"npm run server\" \"npm run client\""
+
+////////////////////////////////////////////// React router dom //////////////////////////////////////
+ => difference between Link and NavLink
+ => createBrowserRouter and wrapping the whole app in main.jsx file
+ => in my whole app i want to keep Navbar and Footer component same and dynamically change the other component, in this case Outlet from react-router-dom comes handy. First create a root file (in my case it is app.js but you can name it layout.js) and import Navbar and Footer and use outlet (see app.js for reference)
+
+
+//////////////////////////////Redux toolkit setup/////////////////////////////////////////////////////
+
+# install redux toolkit and react redux
+==> npm i @redux/toolkit react-redux inside frontend directory
+
+# wrap the main file with redux provider 
+create a redux store inside src and import that store in main.js file also import provider from react-redux in the main.js file
+ <Provider store={store}>
+    <React.StrictMode>
+      <RouterProvider router={router} />
+    </React.StrictMode>
+  </Provider>
+
+# creating slices 
+ => create a folder slice inside src directory  
+  1) AuthSlice 
+  ==>
+      import createSlice from "@reduxjs/toolkit"
+
+ const initialState = {
+    userInfo: localStorage.getItem("userInfo") ? JSON.parse(localStorage.getItem('userInfo')) : null
+}
+
+const authSlice = createSlice ({
+    name:'auth',
+    initialState,
+    reducers: {
+        setCredentials : (state, action) => {
+            state.userInfo = state.payload;
+            localStorage.setItem('userInfo' , JSON.stringify(action.payload))
+        },
+        logout: (state, action) => {
+            state.userInfo = null,
+            localStorage.removeItem('userInfo')
+        }
+    }
+})
+export const {setCredentials, logout} = authSlice.actions
+export  default authSlice.reducers;
+
+
+Let's break down the provided code:
+
+=>Importing createSlice:
+The code imports createSlice from @reduxjs/toolkit. createSlice is a function provided by Redux Toolkit for defining a slice of Redux state, including initial state, reducers, and action creators.
+
+=>Initial State:
+The initialState constant defines the initial state of the auth slice.
+It contains a property called userInfo which is initialized using localStorage.getItem("userInfo"). If there's data stored in the userInfo key of the local storage, it's parsed as JSON. If not, it's set to null.
+
+=>Creating the Slice:
+The createSlice function is invoked to create a Redux slice named auth.
+It takes an object with the following properties:
+name: Specifies the name of the slice ('auth' in this case).
+initialState: The initial state of the slice, defined earlier.
+reducers: An object containing reducer functions.
+
+Reducers:
+Inside the reducers object, there are two reducer functions:
+setCredentials: This reducer is responsible for setting the user credentials in the state and storing them in localStorage. It takes the current state and action as parameters, updates the userInfo property of the state with the payload provided in the action, and stores the user information in localStorage.
+logout: This reducer handles the logout functionality. It sets the userInfo state to null and removes the user information from localStorage.
+
+=>Exporting Actions:
+The line export const { setCredentials, logout } = authSlice.actions exports the action creators generated by createSlice. These action creators can be dispatched to trigger the reducers defined in the slice.
+
+=>Exporting Reducer:
+The line export default authSlice.reducer exports the reducer function generated by createSlice. This reducer function is responsible for handling state updates based on the dispatched actions.
+In summary, the code sets up a Redux slice named auth for managing user authentication-related state. It provides reducers for setting user credentials and logging out, along with action creators and a reducer function to be used in the Redux store.
+
+2) API slice
+=> import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react"
+const baseQuery = fetchBaseQuery({baseUrl:''});
+export const apiSlice = createApi({
+    baseQuery,
+    tagTypes:['user'],
+    endpoints: (builder) => ({})
+})
+
+This code sets up an API slice using Redux Toolkit's @reduxjs/toolkit/query/react package. The API slice allows you to manage asynchronous data fetching and state in your Redux store. Let's break down the code:
+
+=>Import Statements:
+The code imports two functions, createApi and fetchBaseQuery, from the @reduxjs/toolkit/query/react package. These functions are provided by Redux Toolkit for creating API slices and making HTTP requests, respectively.
+
+=>Defining the Base Query:
+The fetchBaseQuery function is invoked to create a base query function for making HTTP requests. It takes an object with configuration options as its argument. In this case, an empty object is provided, indicating that there is no base URL specified for API requests. You typically would provide the base URL of your API here.
+The resulting base query function is assigned to the baseQuery constant.
+
+=>Creating the API Slice:
+The createApi function is invoked to create an API slice. It takes an object with configuration options as its argument.
+The configuration options include:
+baseQuery: The base query function to use for making HTTP requests. In this case, it's the baseQuery function defined earlier.
+tagTypes: An array of tag types used for organizing and indexing cached data. In this case, it includes a single tag type, 'user'.
+endpoints: A function that defines the API endpoints. It takes a builder object as its argument, which is used to define individual endpoints. In this case, the function provided to endpoints is empty, meaning no specific endpoints are defined yet.
+
+=>Exporting the API Slice:
+The resulting API slice is assigned to the apiSlice constant, which is exported from this module.
+
+In summary, this code sets up the groundwork for creating an API slice using Redux Toolkit's query features. It defines a base query function for making HTTP requests and initializes the structure of the API slice. You would typically add specific endpoints and their corresponding request configurations inside the endpoints function to interact with your backend API.
+
+
+3) configuring slices into store
+ import {configureStore} from '@reduxjs/toolkit'
+import { apiSlice } from './slices/apiSlice'
+import authReducer from './slices/authSlice'
+
+const store = configureStore({
+    reducer: {
+        auth: authReducer,
+        [apiSlice.reducerPath] : apiSlice.reducer
+    },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(apiSlice.middleware),
+    devTools: true 
+})
+
+export default store
+
+=>We create the Redux store using configureStore.
+Inside the configureStore function:
+=>We provide an object with configuration options.
+ The reducer key is an object where we specify the reducers that manage the state of our application.
+   =>We include authReducer to manage authentication-related state under the key 'auth'.
+   =>We include apiSlice.reducer to manage API-related state. The [apiSlice.reducerPath] key likely refers to the path where the API slice's reducer resides.
+=>The middleware key allows us to customize the middleware stack of the Redux store. In this case, we use getDefaultMiddleware, which provides a set of default middleware functions and then concatenate apiSlice.middleware to it. This likely adds middleware related to API requests.
+=>The devTools key enables Redux DevTools, which provides a set of debugging and development tools for inspecting and interacting with the Redux store in the browser's developer tools.
+
+4) Users API Slice //////////////
+ import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react"
+
+const baseQuery = fetchBaseQuery({baseUrl:''});
+
+export const apiSlice = createApi({
+    baseQuery,
+    tagTypes:['user'],
+    endpoints: (builder) => ({})
+})
+export default apiSlice
+
+In the provided code snippet, you're utilizing the apiSlice defined in the apiSlice.js file to create API endpoints specific to user-related operations, such as login. Here's an explanation of the code:
+
+=> Import apiSlice:
+You import the apiSlice from the apiSlice.js file. This apiSlice likely contains configurations and utilities related to making API requests using Redux Toolkit's query features.
+
+=> Define API Endpoint URL:
+You define a constant USERS_URL which represents the base URL for user-related API endpoints. In this case, it's set to "/api/users".
+
+=> Create User API Slice:
+You use the apiSlice.injectEndpoints() method to define specific endpoints for user-related operations.
+Inside the endpoints object, you utilize the builder parameter provided by the injectEndpoints method to define different API operations.
+For example, you define a login endpoint using builder.mutation() method.
+The login endpoint is a mutation, meaning it's used for operations that modify data on the server, such as login requests.
+The query function provided to the mutation method specifies the details of the HTTP request to be made. It includes the URL (${USERS_URL}/auth), method (POST), and body (data) of the request.
+
+=> Destructure API Slice Methods:
+Finally, you destructure the useLoginMutation method from the usersApiSlice. This method is likely provided by the apiSlice for handling login mutations.
+useLoginMutation is a hook that you can use in your React components to perform login mutations. It's provided by Redux Toolkit's query features and encapsulates the logic related to making login requests to the API.
+In summary, the code sets up user-specific API endpoints using Redux Toolkit's query features. It defines a login endpoint and provides a hook useLoginMutation to facilitate login mutations in React components.
+
+////////  Login Functionality  ///////////////
+=> import useDispatch, useSelector  , useLogin mutation from apiSlice , setCredentials from authSlice .
+  to understand the concept of useLoginMutation please go to code component LoginScreen
+
+/////////Register Functionality /////////////////
+
+
+/////////Private Route for updating profile ////////////
+if we set up route for updating profile in this way 
+ <Route path="/" element={<App />}>
+      <Route index={true} path="/" element={<HomeScreen />} />
+      <Route index={true} path="/login" element={<LoginScreen />} />
+      <Route index={true} path="/profile" element={<ProfileScreen/>}/>
+      <Route index={true} path="/register" element={<RegisterScreen />} />
+    </Route>
+    the http://localhost:3000/profile route is accessible by anyone . we dont want that  we only want authenticated user to update his/her profile so we set up private route
+
+    import React from 'react'
+    import { Navigate, Outlet } from "react-router-dom";
+    import { useSelector } from "react-redux";
+
+
+    const PrivateRoutes = () => {
+    const {userInfo} = useSelector((state) => state.auth)
+    return userInfo ? <Outlet/> : <Navigate to='/login' replace/> 
+}
+export default PrivateRoutes
+
+return userInfo ? <Outlet/> : <Navigate to='/login' replace/>: Conditionally renders either the <Outlet/> component or the <Navigate/> component based on the userInfo property.
+If userInfo is truthy (indicating that the user is authenticated), the <Outlet/> component is rendered. The <Outlet/> component is a placeholder that renders the child routes of the current route.
+If userInfo is falsy (indicating that the user is not authenticated), the <Navigate/> component is rendered with a to prop set to '/login'. This causes a redirection to the login page. The replace prop ensures that the current entry in the navigation history is replaced with the new location.
+
+in main.jsx import and wrap your private route like this 
+<Route path="" element={<PrivateRoutes />}>
+        <Route path="/profile" element={<ProfileScreen />} />
+      </Route>
+
+      now if we tried to access /profile from browser it will navigate to path="/login"
+
+//////////////////// update profile ////////////////////////////
+in usersapislice define a update endpoint 
+ update: builder.mutation({
+  query: (data) => ({
+    method: "PUT",
+    url:  `${USERS_URL}/profile`,
+    body:data
+  })
+ })
+
+ Create a component named ProfileScreen and create necessary form field used to update user's info . Import the usemutation hook form usersaplislice
+ const [update] = useUpdateMutation()
+This hook gives you a function named update that you can call to perform the update operation. It handles sending the request to the backend API and updating the Redux store with the response.
+please visit the code in profilescreen.jsx

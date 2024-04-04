@@ -51,8 +51,6 @@ function ProfileScreen() {
     }
   }
   // Inside the submitHandler, you call the update function with the data you want to update (such as _id, name, email, password). You await the result of this function call, and upon success, you dispatch an action to update the Redux store with the new user information retrieved from the API response. If there's an error, you handle it accordingly 
-
-
   return (
     <Paper
       elevation={3}            

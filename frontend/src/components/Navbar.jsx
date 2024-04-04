@@ -38,12 +38,10 @@ export default function Navbar() {
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
   };
-
   const handleProfileClick = () => {
     setAnchorElUser(null);
     navigate('/profile')
   }
-
   const handleLogout = async () => {
     setAnchorElUser(null);
     try {
